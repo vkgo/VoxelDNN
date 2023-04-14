@@ -45,7 +45,7 @@ if __name__ == '__main__':
         target_path = os.path.join(args.dest, file)
         target_folder, _ = os.path.split(target_path)
         makedirs(target_folder, exist_ok=True)
-        # shutil.copyfile(path, target_path)
-        os.symlink(path, target_path)
+        shutil.copyfile(path, target_path)
+        # os.symlink(path, target_path)
 
     logger.info(f'{files_len} models to {args.dest}')

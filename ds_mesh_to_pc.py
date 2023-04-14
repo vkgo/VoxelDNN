@@ -12,6 +12,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 import os
+import shutil
 from os.path import join, split, splitext
 from os import makedirs
 from glob import glob
@@ -33,7 +34,11 @@ def process(path, args):
     makedirs(target_folder, exist_ok=True)
 
     logger.debug(f"Writing PC {ori_path} to {target_path}")
-    pc_mesh = PyntCloud.from_file(ori_path)
+    try:
+        pc_mesh = PyntCloud.from_file(ori_path)
+    except:
+        logger.info(f"Error reading {ori_path}")
+        return
     mesh = pc_mesh.mesh
     pc_mesh.points = pc_mesh.points.astype('float64', copy=False)
     pc_mesh.mesh = mesh
@@ -63,8 +68,8 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('source', help='Source directory')
-    parser.add_argument('dest', help='Destination directory')
+    parser.add_argument('--source', help='Source directory', default='datasets/ModelNet40_200')
+    parser.add_argument('--dest', help='Destination directory', default='datasets/ModelNet40_200_pc512')
     parser.add_argument('--vg_size', type=int, help='Voxel Grid resolution for x, y, z dimensions', default=64)
     parser.add_argument('--n_samples', type=int, help='Number of samples', default=500000)
     parser.add_argument('--source_extension', help='Mesh files extension', default='.off')
@@ -72,7 +77,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.source), f'{args.source} does not exist'
+    if os.path.exists(args.dest):
+        # remove
+        shutil.rmtree(args.dest)
+    # assert os.path.exists(args.source), f'{args.source} does not exist'
     assert not os.path.exists(args.dest), f'{args.dest} already exists'
     assert args.vg_size > 0, f'vg_size must be positive'
     assert args.n_samples > 0, f'n_samples must be positive'
@@ -82,7 +90,6 @@ if __name__ == '__main__':
     files_len = len(files)
     assert files_len > 0
     logger.info(f'Found {files_len} models in {args.source}')
-
     with Pool() as p:
         process_f = functools.partial(process, args=args)
         list(tqdm(p.imap(process_f, files), total=files_len)) 
